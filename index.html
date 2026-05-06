@@ -149,6 +149,8 @@
     height: 4px;
     accent-color: var(--accent);
     cursor: pointer;
+    display: block;
+    box-sizing: border-box;
   }
 
   .color-row { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -298,7 +300,6 @@
     z-index: 50;
     opacity: 0;
     transition: opacity 0.3s;
-    mix-blend-mode: multiply;
   }
 
   /* loading */
@@ -469,9 +470,9 @@
     <div>
       <div class="panel-title" style="margin-bottom:8px">Skrifttype</div>
       <div class="font-row">
-        <div class="font-btn active" data-font="'OpenDyslexic', sans-serif">OpenDyslexic</div>
-        <div class="font-btn" data-font="'Dyslexie', sans-serif">Dyslexie</div>
-        <div class="font-btn" data-font="'Calibri', sans-serif">Calibri</div>
+        <button class="font-btn" type="button" data-font="'OpenDyslexic', sans-serif">OpenDyslexic</button>
+        <button class="font-btn" type="button" data-font="'Dyslexie', sans-serif">Dyslexie</button>
+        <button class="font-btn" type="button" data-font="'Calibri', sans-serif">Calibri</button>
       </div>
     </div>
 
@@ -498,6 +499,8 @@
 
 <!-- Color overlay layer -->
 <div id="color-overlay"></div>
+<!-- Flicker overlay layer -->
+<div id="flicker-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:49;background:black;opacity:0;"></div>
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -516,16 +519,15 @@ const overlay = document.getElementById('color-overlay');
 const mainArea = document.getElementById('main-area');
 
 // ── Flicker engine ──
+const flickerOverlay = document.getElementById('flicker-overlay');
+
 function stopFlicker() {
   if (flickerInterval !== null) {
     clearInterval(flickerInterval);
     flickerInterval = null;
   }
   phase = false;
-  if (td()) {
-    td().style.opacity = '1';
-    td().style.backgroundColor = 'transparent';
-  }
+  flickerOverlay.style.opacity = '0';
 }
 
 function startFlicker() {
@@ -534,16 +536,9 @@ function startFlicker() {
   const hz = parseInt(document.getElementById('freq').value);
   const pct = parseInt(document.getElementById('intens').value) / 100;
   const ms = Math.round(1000 / (hz * 2));
-  // Beregn en mørk baggrundsfarve baseret på intensitet
-  const darkness = Math.round(pct * 180); // 0-180 gråskala
-  const darkBg = `rgb(${darkness},${darkness},${darkness})`;
   flickerInterval = setInterval(() => {
     phase = !phase;
-    const el = td();
-    if (filterOn && el) {
-      el.style.opacity = phase ? String(1 - pct * 0.6) : '1';
-      el.style.backgroundColor = phase ? `rgba(0,0,0,${pct * 0.15})` : 'transparent';
-    }
+    flickerOverlay.style.opacity = phase ? String(pct * 0.45) : '0';
   }, ms);
 }
 
@@ -605,11 +600,21 @@ document.getElementById('lineheight').addEventListener('input', e => {
 });
 
 // ── Font ──
+let currentFont = 'none';
 document.querySelectorAll('.font-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    if (td()) td().style.fontFamily = btn.dataset.font;
+    if (currentFont === btn.dataset.font) {
+      // Fravælg
+      currentFont = 'none';
+      btn.classList.remove('active');
+      if (td()) td().style.fontFamily = '';
+    } else {
+      // Vælg
+      currentFont = btn.dataset.font;
+      document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (td()) td().style.fontFamily = btn.dataset.font;
+    }
   });
 });
 
@@ -622,11 +627,11 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('lineheight').value = 20; document.getElementById('lineheight-out').textContent = '2.0';
   setColor('none');
   if (filterOn) setFilterEnabled(false);
+  currentFont = 'none';
+  document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
   if (td()) {
-    Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0', fontFamily:"'OpenDyslexic', sans-serif", opacity:'1' });
+    Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0', fontFamily:'', opacity:'1' });
   }
-  document.querySelectorAll('.font-btn').forEach(b => b.classList.toggle('active', b.dataset.font === "'OpenDyslexic', sans-serif"));
-  startFlicker();
 });
 
 // ── Paste text ──
