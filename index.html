@@ -6,16 +6,17 @@
 <title>Læsehjælp – Visuel ordblindhedsfilter</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
+  /* Loader OpenDyslexic uden at anvende den på noget element */
   @font-face {
     font-family: 'OpenDyslexic';
-    src: url('https://fonts.cdnfonts.com/s/14894/OpenDyslexic-Regular.woff') format('woff');
+    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
+    font-display: swap;
   }
   @font-face { font-family: 'Dyslexie'; src: local('Dyslexie'); }
   @font-face { font-family: 'Calibri'; src: local('Calibri'); }
 </style>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
@@ -36,11 +37,11 @@
     --card: #faf7f2;
     --radius: 12px;
     --radius-lg: 20px;
-    --font-heading: 'DM Sans', sans-serif;
+    --font-ui: 'DM Sans', sans-serif;
   }
 
   body {
-    font-family: var(--font-heading);
+    font-family: var(--font-ui);
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -48,7 +49,6 @@
     line-height: 1.6;
   }
 
-  /* ── TOP BAR ── */
   header {
     background: var(--accent);
     padding: 0 2rem;
@@ -60,29 +60,16 @@
     top: 0;
     z-index: 100;
   }
-  .logo {
-    font-family: var(--font-heading);
-    color: #fff;
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-  }
+  .logo { font-family: var(--font-ui); color: #fff; font-size: 24px; font-weight: 700; letter-spacing: 0.01em; }
   .logo span { color: #a8d8b8; }
-  .header-tag {
-    font-size: 11px;
-    color: rgba(255,255,255,0.6);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
+  .header-tag { font-size: 11px; color: rgba(255,255,255,0.6); letter-spacing: 0.08em; text-transform: uppercase; }
 
-  /* ── LAYOUT ── */
   .shell {
     display: grid;
     grid-template-columns: 320px 1fr;
     height: calc(100vh - 56px);
   }
 
-  /* ── SIDEBAR ── */
   aside {
     background: var(--card);
     border-right: 1px solid var(--border);
@@ -93,7 +80,6 @@
     gap: 1.25rem;
   }
   aside > div, aside > button { width: 100%; box-sizing: border-box; }
-  aside > div, aside > button { width: 100%; }
 
   .upload-zone {
     border: 1.5px dashed var(--border2);
@@ -107,44 +93,16 @@
   }
   .upload-zone:hover, .upload-zone.drag { border-color: var(--accent2); background: var(--accent-light); }
   .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-icon {
-    width: 44px; height: 44px;
-    background: var(--accent-light);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 0.75rem;
-    font-size: 22px;
-  }
+  .upload-icon { width: 44px; height: 44px; background: var(--accent-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; font-size: 22px; }
   .upload-title { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
   .upload-sub { font-size: 12px; color: var(--text3); }
 
-  .panel-title {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text3);
-    font-weight: 500;
-    margin-bottom: 8px;
-  }
+  .panel-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); font-weight: 500; margin-bottom: 8px; }
 
   .control-group { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-
   .ctrl-row { display: flex; flex-direction: column; gap: 4px; width: 100%; }
-  .ctrl-label {
-    font-size: 12px;
-    color: var(--text2);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-  }
-  .ctrl-val {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--accent);
-    min-width: 48px;
-    text-align: right;
-  }
+  .ctrl-label { font-size: 12px; color: var(--text2); display: flex; justify-content: space-between; align-items: center; width: 100%; }
+  .ctrl-val { font-size: 12px; font-weight: 500; color: var(--accent); min-width: 48px; text-align: right; }
 
   input[type=range] {
     -webkit-appearance: none;
@@ -190,55 +148,17 @@
   }
 
   .color-row { display: flex; gap: 6px; flex-wrap: wrap; }
-  .color-swatch {
-    width: 30px; height: 30px;
-    border-radius: 8px;
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: transform 0.15s, border-color 0.15s;
-    position: relative;
-  }
+  .color-swatch { width: 30px; height: 30px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
   .color-swatch:hover { transform: scale(1.12); }
   .color-swatch.active { border-color: var(--accent); }
-  .color-swatch.none {
-    background: var(--bg2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; color: var(--text3);
-  }
+  .color-swatch.none { background: var(--bg2); display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text3); }
 
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    background: var(--bg);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-  }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); }
   .toggle-label { font-size: 13px; font-weight: 500; }
-  .toggle-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
 
-  .toggle-switch {
-    width: 44px; height: 24px;
-    background: var(--bg3);
-    border-radius: 12px;
-    position: relative;
-    cursor: pointer;
-    transition: background 0.2s;
-    flex-shrink: 0;
-    border: none;
-  }
+  .toggle-switch { width: 44px; height: 24px; background: var(--bg3); border-radius: 12px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; border: none; }
   .toggle-switch.on { background: var(--accent); }
-  .toggle-switch::after {
-    content: '';
-    position: absolute;
-    width: 18px; height: 18px;
-    background: #fff;
-    border-radius: 50%;
-    top: 3px; left: 3px;
-    transition: transform 0.2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  }
+  .toggle-switch::after { content: ''; position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
   .toggle-switch.on::after { transform: translateX(20px); }
 
   .font-row { display: flex; gap: 6px; }
@@ -254,119 +174,50 @@
     color: var(--text2);
     transition: all 0.15s;
     text-align: center;
+    font-family: var(--font-ui);
   }
   .font-btn:hover { border-color: var(--accent2); color: var(--accent); }
   .font-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
-  .reset-btn {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--border2);
-    border-radius: var(--radius);
-    background: transparent;
-    color: var(--text2);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'DM Sans', sans-serif;
-  }
+  .reset-btn { width: 100%; padding: 10px; border: 1px solid var(--border2); border-radius: var(--radius); background: transparent; color: var(--text2); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; font-family: var(--font-ui); }
   .reset-btn:hover { background: var(--bg2); color: var(--text); }
 
-  /* ── MAIN READING AREA ── */
-  main {
-    overflow-y: auto;
-    padding: 3rem 4rem;
-    position: relative;
-  }
+  main { overflow-y: auto; padding: 3rem 4rem; position: relative; }
 
-  #drop-prompt {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    gap: 1rem;
-    color: var(--text3);
-    text-align: center;
-  }
-  .drop-big { font-family: var(--font-heading); font-size: 28px; font-weight: 700; color: var(--text2); line-height: 1.3; }
+  #drop-prompt { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 1rem; color: var(--text3); text-align: center; }
+  .drop-big { font-family: var(--font-ui); font-size: 28px; font-weight: 700; color: var(--text2); line-height: 1.3; }
   .drop-sub { font-size: 14px; max-width: 300px; }
 
-  #reader-content {
-    display: none;
-    max-width: 680px;
-    margin: 0 auto;
-  }
+  #reader-content { display: none; max-width: 680px; margin: 0 auto; }
 
-  #doc-title {
-    font-family: var(--font-heading);
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 0.5rem;
-    line-height: 1.3;
-  }
-  .doc-meta {
-    font-size: 12px;
-    color: var(--text3);
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border);
-  }
+  #doc-title { font-family: var(--font-ui); font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; line-height: 1.3; }
+  .doc-meta { font-size: 12px; color: var(--text3); margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
 
   #text-display {
-        font-size: 18px;
+    font-family: inherit;
+    font-size: 18px;
     line-height: 2;
     color: var(--text);
     white-space: pre-wrap;
     word-break: break-word;
-    transition: letter-spacing 0.2s, font-family 0.2s, background 0.1s, opacity 0.05s;
+    transition: letter-spacing 0.2s, font-family 0.2s, opacity 0.05s;
     border-radius: 8px;
     padding: 0.5rem 0;
     min-height: 200px;
   }
 
-  /* overlay for color filter */
-  #color-overlay {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 50;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
+  #color-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0; transition: opacity 0.3s; }
+  #flicker-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 49; background: black; opacity: 0; }
 
-  /* loading */
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 3rem;
-    color: var(--text3);
-    font-size: 14px;
-  }
-  .spinner {
-    width: 20px; height: 20px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
+  .loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 3rem; color: var(--text3); font-size: 14px; }
+  .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* scrollbar */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
-  /* divider */
-  .divider {
-    height: 1px;
-    background: var(--border);
-    margin: 0 -1.25rem;
-  }
+  .divider { height: 1px; background: var(--border); margin: 0 -1.25rem; }
 
   @media (max-width: 768px) {
     .shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
@@ -386,8 +237,6 @@
 </header>
 
 <div class="shell">
-
-  <!-- SIDEBAR -->
   <aside>
 
     <!-- Upload -->
@@ -404,54 +253,20 @@
     <!-- Paste text -->
     <div>
       <div class="panel-title">Indsæt tekst</div>
-      <textarea id="paste-input" placeholder="Indsæt eller skriv tekst her…" style="
-        width:100%;
-        min-height:90px;
-        padding:10px 12px;
-        border:1.5px dashed var(--border2);
-        border-radius:var(--radius);
-        background:var(--bg);
-        color:var(--text);
-        font-family:Georgia,'Times New Roman',serif;
-        font-size:13px;
-        line-height:1.5;
-        resize:vertical;
-        outline:none;
-        transition:border-color 0.2s;
-      "></textarea>
-      <button id="paste-btn" style="
-        margin-top:6px;
-        width:100%;
-        padding:8px;
-        border:1px solid var(--border2);
-        border-radius:var(--radius);
-        background:var(--accent-light);
-        color:var(--accent);
-        font-family:'DM Sans',sans-serif;
-        font-size:13px;
-        font-weight:500;
-        cursor:pointer;
-        transition:background 0.15s;
-      ">Vis tekst →</button>
+      <textarea id="paste-input" placeholder="Indsæt eller skriv tekst her…" style="width:100%;min-height:90px;padding:10px 12px;border:1.5px dashed var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:13px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;"></textarea>
+      <button id="paste-btn" style="margin-top:6px;width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--accent-light);color:var(--accent);font-family:var(--font-ui);font-size:13px;font-weight:500;cursor:pointer;">Vis tekst →</button>
     </div>
 
     <div class="divider"></div>
 
     <!-- Filter toggle -->
     <div class="toggle-row">
-      <div>
-        <div class="toggle-label">Stroboskopisk filter</div>
-      </div>
+      <div><div class="toggle-label">Stroboskopisk filter</div></div>
       <button type="button" class="toggle-switch" id="filter-toggle" aria-label="Slå filter til/fra" aria-pressed="false"></button>
     </div>
 
-    <!-- Frequency + intensity -->
-    <div style="
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 14px;
-    ">
+    <!-- Filterindstillinger -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
       <div class="panel-title" style="margin-bottom:10px">Filterindstillinger</div>
       <div class="control-group">
         <div class="ctrl-row">
@@ -467,12 +282,12 @@
 
     <div class="divider"></div>
 
-    <!-- Color overlay -->
+    <!-- Farvet overlay -->
     <div>
       <div class="panel-title">Farvet overlay (Irlen)</div>
       <div class="color-row" id="color-row">
         <div class="color-swatch none active" data-color="none" title="Ingen">✕</div>
-        <div class="color-swatch active" data-color="#fff3b0" style="background:#fff3b0" title="Gul"></div>
+        <div class="color-swatch" data-color="#fff3b0" style="background:#fff3b0" title="Gul"></div>
         <div class="color-swatch" data-color="#b0d8ff" style="background:#b0d8ff" title="Blå"></div>
         <div class="color-swatch" data-color="#b8f0c8" style="background:#b8f0c8" title="Grøn"></div>
         <div class="color-swatch" data-color="#f7d0f0" style="background:#f7d0f0" title="Lilla"></div>
@@ -482,7 +297,7 @@
 
     <div class="divider"></div>
 
-    <!-- Typography -->
+    <!-- Typografi -->
     <div>
       <div class="panel-title">Typografi</div>
       <div class="control-group">
@@ -501,12 +316,13 @@
       </div>
     </div>
 
+    <!-- Skrifttype -->
     <div>
       <div class="panel-title" style="margin-bottom:8px">Skrifttype</div>
       <div class="font-row">
-        <button class="font-btn" type="button" data-font="'OpenDyslexic', sans-serif">OpenDyslexic</button>
-        <button class="font-btn" type="button" data-font="'Dyslexie', sans-serif">Dyslexie</button>
-        <button class="font-btn" type="button" data-font="'Calibri', sans-serif">Calibri</button>
+        <button class="font-btn" type="button" data-font="OpenDyslexic">OpenDyslexic</button>
+        <button class="font-btn" type="button" data-font="Dyslexie">Dyslexie</button>
+        <button class="font-btn" type="button" data-font="Calibri">Calibri</button>
       </div>
     </div>
 
@@ -516,7 +332,6 @@
 
   </aside>
 
-  <!-- MAIN -->
   <main id="main-area">
     <div id="drop-prompt">
       <div style="font-size:48px">📖</div>
@@ -531,37 +346,29 @@
   </main>
 </div>
 
-<!-- Color overlay layer -->
 <div id="color-overlay"></div>
-<!-- Flicker overlay layer -->
-<div id="flicker-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:49;background:black;opacity:0;transition:none;"></div>
-<!-- Flicker overlay layer -->
-<div id="flicker-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:49;background:black;opacity:0;"></div>
+<div id="flicker-overlay"></div>
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
-// ── State ──
 let filterOn = false;
 let flickerInterval = null;
 let phase = false;
 let currentColor = 'none';
+let currentFont = null; // null = ingen valgt
 const spacingLabels = ['Normal','Let','Moderat','Stor','Meget stor'];
 
 const td = () => document.getElementById('text-display');
 const overlay = document.getElementById('color-overlay');
+const flickerOverlay = document.getElementById('flicker-overlay');
 const mainArea = document.getElementById('main-area');
 
-// ── Flicker engine ──
-const flickerOverlay = document.getElementById('flicker-overlay');
-
+// ── Flicker ──
 function stopFlicker() {
-  if (flickerInterval !== null) {
-    clearInterval(flickerInterval);
-    flickerInterval = null;
-  }
+  if (flickerInterval !== null) { clearInterval(flickerInterval); flickerInterval = null; }
   phase = false;
   flickerOverlay.style.opacity = '0';
 }
@@ -583,16 +390,12 @@ function setFilterEnabled(enabled) {
   const btn = document.getElementById('filter-toggle');
   btn.classList.toggle('on', filterOn);
   btn.setAttribute('aria-pressed', String(filterOn));
-  if (filterOn) startFlicker();
-  else stopFlicker();
+  if (filterOn) startFlicker(); else stopFlicker();
 }
 
-// ── Toggle ──
-document.getElementById('filter-toggle').addEventListener('click', () => {
-  setFilterEnabled(!filterOn);
-});
+document.getElementById('filter-toggle').addEventListener('click', () => setFilterEnabled(!filterOn));
 
-// ── Color overlay ──
+// ── Farve-overlay ──
 function setColor(color) {
   currentColor = color;
   if (color === 'none') {
@@ -602,14 +405,12 @@ function setColor(color) {
     overlay.style.background = color;
     overlay.style.opacity = '0.28';
   }
-  document.querySelectorAll('.color-swatch').forEach(s => {
-    s.classList.toggle('active', s.dataset.color === color);
-  });
+  document.querySelectorAll('.color-swatch').forEach(s =>
+    s.classList.toggle('active', s.dataset.color === color));
 }
 
-document.querySelectorAll('.color-swatch').forEach(s => {
-  s.addEventListener('click', () => setColor(s.dataset.color));
-});
+document.querySelectorAll('.color-swatch').forEach(s =>
+  s.addEventListener('click', () => setColor(s.dataset.color)));
 
 // ── Sliders ──
 document.getElementById('freq').addEventListener('input', e => {
@@ -635,22 +436,24 @@ document.getElementById('lineheight').addEventListener('input', e => {
   if (td()) td().style.lineHeight = val;
 });
 
-// ── Font ──
-let currentFont = 'none';
+// ── Skrifttype – klik vælger, klik igen fravælger ──
+function applyFont() {
+  if (td()) td().style.fontFamily = currentFont ? `'${currentFont}', sans-serif` : '';
+}
+
 document.querySelectorAll('.font-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     if (currentFont === btn.dataset.font) {
       // Fravælg
-      currentFont = 'none';
+      currentFont = null;
       btn.classList.remove('active');
-      if (td()) td().style.fontFamily = '';
     } else {
       // Vælg
       currentFont = btn.dataset.font;
       document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      if (td()) td().style.fontFamily = btn.dataset.font;
     }
+    applyFont();
   });
 });
 
@@ -663,14 +466,12 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('lineheight').value = 20; document.getElementById('lineheight-out').textContent = '2.0';
   setColor('none');
   if (filterOn) setFilterEnabled(false);
-  currentFont = 'none';
+  currentFont = null;
   document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
-  if (td()) {
-    Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0', fontFamily:'', opacity:'1' });
-  }
+  if (td()) Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0', fontFamily:'' });
 });
 
-// ── Paste text ──
+// ── Paste tekst ──
 document.getElementById('paste-btn').addEventListener('click', () => {
   const text = document.getElementById('paste-input').value.trim();
   if (!text) return;
@@ -678,11 +479,8 @@ document.getElementById('paste-btn').addEventListener('click', () => {
   showContent('Indsat tekst', `ca. ${wordCount.toLocaleString('da')} ord`, text);
 });
 
-// Støt også Enter+Ctrl/Cmd i textarea
 document.getElementById('paste-input').addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    document.getElementById('paste-btn').click();
-  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') document.getElementById('paste-btn').click();
 });
 
 // ── Upload & drag-drop ──
@@ -690,21 +488,16 @@ const fileInput = document.getElementById('file-input');
 const uploadZone = document.getElementById('upload-zone');
 
 fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
-
 uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
 uploadZone.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadZone.classList.remove('drag');
-  const f = e.dataTransfer.files[0];
-  if (f) handleFile(f);
+  e.preventDefault(); uploadZone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
-
 mainArea.addEventListener('dragover', e => e.preventDefault());
 mainArea.addEventListener('drop', e => {
   e.preventDefault();
-  const f = e.dataTransfer.files[0];
-  if (f) handleFile(f);
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
 
 function showLoading() {
@@ -713,8 +506,7 @@ function showLoading() {
   let el = document.getElementById('loading-el');
   if (!el) {
     el = document.createElement('div');
-    el.id = 'loading-el';
-    el.className = 'loading';
+    el.id = 'loading-el'; el.className = 'loading';
     el.innerHTML = '<div class="spinner"></div> Indlæser dokument...';
     mainArea.appendChild(el);
   }
@@ -731,7 +523,7 @@ function showContent(title, meta, text) {
   display.style.fontSize = document.getElementById('fontsize').value + 'px';
   display.style.letterSpacing = document.getElementById('spacing').value + 'px';
   display.style.lineHeight = (parseInt(document.getElementById('lineheight').value) / 10).toFixed(1);
-  display.style.fontFamily = currentFont === 'none' ? '' : currentFont;
+  display.style.fontFamily = currentFont ? `'${currentFont}', sans-serif` : '';
   document.getElementById('reader-content').style.display = 'block';
   startFlicker();
 }
@@ -743,10 +535,7 @@ async function handleFile(file) {
     if (ext === 'pdf') await loadPDF(file);
     else if (ext === 'docx') await loadDOCX(file);
     else { alert('Understøtter kun PDF og DOCX filer.'); resetView(); }
-  } catch(e) {
-    alert('Kunne ikke læse filen: ' + e.message);
-    resetView();
-  }
+  } catch(e) { alert('Kunne ikke læse filen: ' + e.message); resetView(); }
 }
 
 function resetView() {
@@ -764,19 +553,28 @@ async function loadPDF(file) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent({ includeMarkedContent: false });
     let pageText = '';
+    let lastX = null, lastRight = null, lastFontSize = 12;
     for (const item of content.items) {
       if (!item || item.str === undefined) continue;
       if (item.hasEOL) {
         pageText += item.str + '\n';
+        lastX = null; lastRight = null;
       } else {
-        // Tilføj kun mellemrum hvis der er et reelt ordskift (width > 0 indikerer mellemrum i PDF)
-        const needsSpace = pageText.length > 0
-          && !pageText.endsWith(' ')
-          && !pageText.endsWith('\n')
-          && item.str !== ''
-          && !item.str.startsWith(' ')
-          && item.width > 0;
-        pageText += (needsSpace ? ' ' : '') + item.str;
+        const x = item.transform ? item.transform[4] : null;
+        const fontSize = item.transform ? Math.abs(item.transform[3]) || 12 : 12;
+        let needsSpace = false;
+        if (x !== null && lastRight !== null) {
+          needsSpace = (x - lastRight) > fontSize * 0.2;
+        }
+        if (!needsSpace && pageText.length > 0 && item.str.startsWith(' ')) {
+          // strengen selv indeholder mellemrum
+        }
+        pageText += (needsSpace && !pageText.endsWith(' ') && !item.str.startsWith(' ') ? ' ' : '') + item.str;
+        if (x !== null) {
+          lastX = x;
+          lastRight = x + (item.width || 0);
+          lastFontSize = fontSize;
+        }
       }
     }
     allText += pageText.trimEnd() + '\n\n';
@@ -795,13 +593,12 @@ async function loadDOCX(file) {
   const text = result.value;
   const wordCount = text.trim().split(/\s+/).length;
   showContent(
-    file.name.replace('.docx',''),
+    file.name.replace(/\.docx$/i, ''),
     `Word-dokument · ca. ${wordCount.toLocaleString('da')} ord`,
     text.trim()
   );
 }
 
-// ── Init ──
 startFlicker();
 
 }); // DOMContentLoaded
