@@ -343,6 +343,9 @@
 
 <header>
   <div class="logo">Læse<span>filter</span></div>
+  <div style="font-size:10px; color:rgba(255,255,255,0.55); text-align:center; line-height:1.4; max-width:420px;">
+    Advarsel: Det stroboskopiske filter producerer blinkende lys og må ikke bruges af personer med fotosensitiv epilepsi eller anfaldssygdomme.
+  </div>
   <div class="header-tag">Hjælp til visuel ordblindhed</div>
 </header>
 
@@ -407,8 +410,16 @@
     </div>
 
     <!-- Frequency + intensity -->
-    <div class="control-group">
-      <div class="panel-title">Filterindstillinger</div>
+    <div style="
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    ">
+      <div class="panel-title" style="margin-bottom:0">Filterindstillinger</div>
       <div class="ctrl-row">
         <div class="ctrl-label">Frekvens <span class="ctrl-val" id="freq-out">10 Hz</span></div>
         <input type="range" id="freq" min="2" max="30" value="10" step="1">
@@ -511,7 +522,10 @@ function stopFlicker() {
     flickerInterval = null;
   }
   phase = false;
-  if (td()) td().style.opacity = '1';
+  if (td()) {
+    td().style.opacity = '1';
+    td().style.backgroundColor = 'transparent';
+  }
 }
 
 function startFlicker() {
@@ -520,9 +534,16 @@ function startFlicker() {
   const hz = parseInt(document.getElementById('freq').value);
   const pct = parseInt(document.getElementById('intens').value) / 100;
   const ms = Math.round(1000 / (hz * 2));
+  // Beregn en mørk baggrundsfarve baseret på intensitet
+  const darkness = Math.round(pct * 180); // 0-180 gråskala
+  const darkBg = `rgb(${darkness},${darkness},${darkness})`;
   flickerInterval = setInterval(() => {
     phase = !phase;
-    if (filterOn && td()) td().style.opacity = phase ? String(1 - pct * 0.55) : '1';
+    const el = td();
+    if (filterOn && el) {
+      el.style.opacity = phase ? String(1 - pct * 0.6) : '1';
+      el.style.backgroundColor = phase ? `rgba(0,0,0,${pct * 0.15})` : 'transparent';
+    }
   }, ms);
 }
 
@@ -700,8 +721,26 @@ async function loadPDF(file) {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const pageText = content.items.map(item => item.str).join(' ');
-    allText += pageText + '\n\n';
+    let pageText = '';
+    for (const item of content.items) {
+      if (item.str === undefined) continue;
+      // hasEOL = linjeskift efter dette fragment
+      if (item.hasEOL) {
+        pageText += item.str + '\n';
+      } else {
+        // Kun tilføj mellemrum hvis fragmentet ikke allerede slutter/starter med ét
+        const needsSpace = pageText.length > 0
+          && !pageText.endsWith(' ')
+          && !pageText.endsWith('\n')
+          && item.str.length > 0
+          && !item.str.startsWith(' ')
+          && item.str !== ''
+          // PDF.js sætter width=0 på fragmenter der er direkte fortsættelse af forrige
+          && (item.width > 0 || item.str === ' ');
+        pageText += (needsSpace ? ' ' : '') + item.str;
+      }
+    }
+    allText += pageText.trimEnd() + '\n\n';
   }
   const wordCount = allText.trim().split(/\s+/).length;
   showContent(
