@@ -4,18 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Læsehjælp – Visuel ordblindhedsfilter</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=OpenDyslexic&display=swap" rel="stylesheet">
-<style>
-  @font-face {
-    font-family: 'Dyslexie';
-    src: local('Dyslexie');
-  }
-  @font-face {
-    font-family: 'Calibri';
-    src: local('Calibri');
-  }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=Lexend:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
@@ -93,6 +84,8 @@
     flex-direction: column;
     gap: 1.25rem;
   }
+  aside > div, aside > button { width: 100%; box-sizing: border-box; }
+  aside > div, aside > button { width: 100%; }
 
   .upload-zone {
     border: 1.5px dashed var(--border2);
@@ -126,9 +119,9 @@
     margin-bottom: 8px;
   }
 
-  .control-group { display: flex; flex-direction: column; gap: 10px; }
+  .control-group { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 
-  .ctrl-row { display: flex; flex-direction: column; gap: 4px; }
+  .ctrl-row { display: flex; flex-direction: column; gap: 4px; width: 100%; }
   .ctrl-label {
     font-size: 12px;
     color: var(--text2);
@@ -146,15 +139,39 @@
   }
 
   input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
     width: 100%;
     height: 4px;
-    accent-color: var(--accent);
+    background: var(--bg3);
+    border-radius: 2px;
     cursor: pointer;
     display: block;
-    min-width: 0;
     box-sizing: border-box;
     padding: 0;
     margin: 0;
+    border: none;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
   }
 
   .color-row { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -474,7 +491,7 @@
       <div class="panel-title" style="margin-bottom:8px">Skrifttype</div>
       <div class="font-row">
         <button class="font-btn" type="button" data-font="'OpenDyslexic', sans-serif">OpenDyslexic</button>
-        <button class="font-btn" type="button" data-font="'Dyslexie', sans-serif">Dyslexie</button>
+        <button class="font-btn" type="button" data-font="'Lexend', sans-serif">Lexend</button>
         <button class="font-btn" type="button" data-font="'Calibri', sans-serif">Calibri</button>
       </div>
     </div>
@@ -502,6 +519,8 @@
 
 <!-- Color overlay layer -->
 <div id="color-overlay"></div>
+<!-- Flicker overlay layer -->
+<div id="flicker-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:49;background:black;opacity:0;transition:none;"></div>
 <!-- Flicker overlay layer -->
 <div id="flicker-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:49;background:black;opacity:0;"></div>
 
