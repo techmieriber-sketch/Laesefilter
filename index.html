@@ -9,19 +9,19 @@
   @font-face { font-family: 'Dyslexie'; src: local('Dyslexie'); }
   @font-face { font-family: 'Calibri'; src: local('Calibri'); }
 </style>
+<style id="__font-override">
+  /* Dynamisk skrifttype-override – styres via JS */
+</style>
 <script>
-  // Loader OpenDyslexic fra samme kilde som browserudvidelsen,
-  // men uden at anvende den på noget element
+  // Loader OpenDyslexic fra samme kilde som browserudvidelsen
+  // Afventer load og neutraliserer cdnfonts' globale regler
   (function() {
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = 'https://fonts.cdnfonts.com/css/opendyslexic';
-    // Overskriv eventuelle font-family regler fra cdnfonts-stylesheetet
     link.onload = function() {
-      var style = document.createElement('style');
-      style.textContent = '* { font-family: inherit !important; } body { font-family: var(--font-ui) !important; }';
-      style.id = '__opendyslexic-reset';
-      document.head.appendChild(style);
+      // Sæt body tilbage til neutral – cdnfonts sætter OpenDyslexic globalt
+      document.body.style.fontFamily = "var(--font-ui)";
     };
     document.head.appendChild(link);
   })();
@@ -447,7 +447,12 @@ document.getElementById('lineheight').addEventListener('input', e => {
 
 // ── Skrifttype – klik vælger, klik igen fravælger ──
 function applyFont() {
-  if (td()) td().style.fontFamily = currentFont ? `'${currentFont}', sans-serif` : '';
+  const styleEl = document.getElementById('__font-override');
+  if (currentFont) {
+    styleEl.textContent = `#text-display { font-family: '${currentFont}', sans-serif !important; }`;
+  } else {
+    styleEl.textContent = '';
+  }
 }
 
 document.querySelectorAll('.font-btn').forEach(btn => {
@@ -477,7 +482,8 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   if (filterOn) setFilterEnabled(false);
   currentFont = null;
   document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
-  if (td()) Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0', fontFamily:'' });
+  document.getElementById('__font-override').textContent = '';
+  if (td()) Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0' });
 });
 
 // ── Paste tekst ──
@@ -532,7 +538,7 @@ function showContent(title, meta, text) {
   display.style.fontSize = document.getElementById('fontsize').value + 'px';
   display.style.letterSpacing = document.getElementById('spacing').value + 'px';
   display.style.lineHeight = (parseInt(document.getElementById('lineheight').value) / 10).toFixed(1);
-  display.style.fontFamily = currentFont ? `'${currentFont}', sans-serif` : '';
+  applyFont(); // anvend aktiv font på nyt indhold
   document.getElementById('reader-content').style.display = 'block';
   startFlicker();
 }
