@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Læsehjælp – Visuel ordblindhedsfilter</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=OpenDyslexic&display=swap" rel="stylesheet">
+<style>
+  @font-face {
+    font-family: 'Dyslexie';
+    src: local('Dyslexie');
+  }
+  @font-face {
+    font-family: 'Calibri';
+    src: local('Calibri');
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0e8;
+    --bg2: #ede7d9;
+    --bg3: #e0d8c8;
+    --text: #1a1612;
+    --text2: #5a5248;
+    --text3: #8a8078;
+    --accent: #2d5a3d;
+    --accent2: #4a8c61;
+    --accent-light: #d4ead9;
+    --border: rgba(26,22,18,0.12);
+    --border2: rgba(26,22,18,0.22);
+    --card: #faf7f2;
+    --radius: 12px;
+    --radius-lg: 20px;
+    --font-heading: 'DM Sans', sans-serif;
+    --font-body: 'OpenDyslexic', sans-serif;
+  }
+
+  body {
+    font-family: var(--font-heading);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── TOP BAR ── */
+  header {
+    background: var(--accent);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: var(--font-heading);
+    color: #fff;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .logo span { color: #a8d8b8; }
+  .header-tag {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: calc(100vh - 56px);
+  }
+
+  /* ── SIDEBAR ── */
+  aside {
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .upload-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 2rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent2); background: var(--accent-light); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon {
+    width: 44px; height: 44px;
+    background: var(--accent-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.75rem;
+    font-size: 22px;
+  }
+  .upload-title { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+  .upload-sub { font-size: 12px; color: var(--text3); }
+
+  .panel-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .control-group { display: flex; flex-direction: column; gap: 10px; }
+
+  .ctrl-row { display: flex; flex-direction: column; gap: 4px; }
+  .ctrl-label {
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .ctrl-val {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .color-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .color-swatch {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .color-swatch:hover { transform: scale(1.12); }
+  .color-swatch.active { border-color: var(--accent); }
+  .color-swatch.none {
+    background: var(--bg2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--text3);
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .toggle-label { font-size: 13px; font-weight: 500; }
+  .toggle-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+  .toggle-switch {
+    width: 44px; height: 24px;
+    background: var(--bg3);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    border: none;
+  }
+  .toggle-switch.on { background: var(--accent); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle-switch.on::after { transform: translateX(20px); }
+
+  .font-row { display: flex; gap: 6px; }
+  .font-btn {
+    flex: 1;
+    padding: 7px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .font-btn:hover { border-color: var(--accent2); color: var(--accent); }
+  .font-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+  .reset-btn {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .reset-btn:hover { background: var(--bg2); color: var(--text); }
+
+  /* ── MAIN READING AREA ── */
+  main {
+    overflow-y: auto;
+    padding: 3rem 4rem;
+    position: relative;
+  }
+
+  #drop-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1rem;
+    color: var(--text3);
+    text-align: center;
+  }
+  .drop-big { font-family: var(--font-heading); font-size: 28px; font-weight: 700; color: var(--text2); line-height: 1.3; }
+  .drop-sub { font-size: 14px; max-width: 300px; }
+
+  #reader-content {
+    display: none;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  #doc-title {
+    font-family: var(--font-heading);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+  .doc-meta {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #text-display {
+    font-family: var(--font-body);
+    font-size: 18px;
+    line-height: 2;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    transition: letter-spacing 0.2s, font-family 0.2s, background 0.1s, opacity 0.05s;
+    border-radius: 8px;
+    padding: 0.5rem 0;
+    min-height: 200px;
+  }
+
+  /* overlay for color filter */
+  #color-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.3s;
+    mix-blend-mode: multiply;
+  }
+
+  /* loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 3rem;
+    color: var(--text3);
+    font-size: 14px;
+  }
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 -1.25rem;
+  }
+
+  @media (max-width: 768px) {
+    .shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    aside { height: auto; max-height: 50vh; }
+    main { padding: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Læse<span>filter</span></div>
+  <div class="header-tag">Hjælp til visuel ordblindhed</div>
+</header>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside>
+
+    <!-- Upload -->
+    <div>
+      <div class="panel-title">Upload dokument</div>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".pdf,.docx">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title">Klik eller træk fil hertil</div>
+        <div class="upload-sub">PDF eller DOCX</div>
+      </div>
+    </div>
+
+    <!-- Paste text -->
+    <div>
+      <div class="panel-title">Indsæt tekst</div>
+      <textarea id="paste-input" placeholder="Indsæt eller skriv tekst her…" style="
+        width:100%;
+        min-height:90px;
+        padding:10px 12px;
+        border:1.5px dashed var(--border2);
+        border-radius:var(--radius);
+        background:var(--bg);
+        color:var(--text);
+        font-family:Georgia,'Times New Roman',serif;
+        font-size:13px;
+        line-height:1.5;
+        resize:vertical;
+        outline:none;
+        transition:border-color 0.2s;
+      "></textarea>
+      <button id="paste-btn" style="
+        margin-top:6px;
+        width:100%;
+        padding:8px;
+        border:1px solid var(--border2);
+        border-radius:var(--radius);
+        background:var(--accent-light);
+        color:var(--accent);
+        font-family:'DM Sans',sans-serif;
+        font-size:13px;
+        font-weight:500;
+        cursor:pointer;
+        transition:background 0.15s;
+      ">Vis tekst →</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Filter toggle -->
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Stroboskopisk filter</div>
+      </div>
+      <button type="button" class="toggle-switch" id="filter-toggle" aria-label="Slå filter til/fra" aria-pressed="false"></button>
+    </div>
+
+    <!-- Frequency + intensity -->
+    <div class="control-group">
+      <div class="panel-title">Filterindstillinger</div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">Frekvens <span class="ctrl-val" id="freq-out">10 Hz</span></div>
+        <input type="range" id="freq" min="2" max="30" value="10" step="1">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-label">Intensitet <span class="ctrl-val" id="intens-out">40%</span></div>
+        <input type="range" id="intens" min="5" max="80" value="40" step="5">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Color overlay -->
+    <div>
+      <div class="panel-title">Farvet overlay (Irlen)</div>
+      <div class="color-row" id="color-row">
+        <div class="color-swatch none active" data-color="none" title="Ingen">✕</div>
+        <div class="color-swatch active" data-color="#fff3b0" style="background:#fff3b0" title="Gul"></div>
+        <div class="color-swatch" data-color="#b0d8ff" style="background:#b0d8ff" title="Blå"></div>
+        <div class="color-swatch" data-color="#b8f0c8" style="background:#b8f0c8" title="Grøn"></div>
+        <div class="color-swatch" data-color="#f7d0f0" style="background:#f7d0f0" title="Lilla"></div>
+        <div class="color-swatch" data-color="#ffc8a0" style="background:#ffc8a0" title="Orange"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Typography -->
+    <div>
+      <div class="panel-title">Typografi</div>
+      <div class="control-group">
+        <div class="ctrl-row">
+          <div class="ctrl-label">Tekststørrelse <span class="ctrl-val" id="size-out">18px</span></div>
+          <input type="range" id="fontsize" min="14" max="32" value="18" step="1">
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label">Bogstavafstand <span class="ctrl-val" id="spacing-out">Normal</span></div>
+          <input type="range" id="spacing" min="0" max="8" value="0" step="2">
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label">Linjeafstand <span class="ctrl-val" id="lineheight-out">2.0</span></div>
+          <input type="range" id="lineheight" min="16" max="30" value="20" step="2">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title" style="margin-bottom:8px">Skrifttype</div>
+      <div class="font-row">
+        <div class="font-btn active" data-font="'OpenDyslexic', sans-serif">OpenDyslexic</div>
+        <div class="font-btn" data-font="'Dyslexie', sans-serif">Dyslexie</div>
+        <div class="font-btn" data-font="'Calibri', sans-serif">Calibri</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="reset-btn" id="reset-btn">↺ Nulstil alle indstillinger</button>
+
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main-area">
+    <div id="drop-prompt">
+      <div style="font-size:48px">📖</div>
+      <div class="drop-big">Upload en tekst<br>for at komme i gang</div>
+      <div class="drop-sub">Træk en PDF eller DOCX-fil hertil, upload via knappen til venstre, eller indsæt tekst direkte i tekstfeltet</div>
+    </div>
+    <div id="reader-content">
+      <div id="doc-title"></div>
+      <div class="doc-meta" id="doc-meta"></div>
+      <div id="text-display"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Color overlay layer -->
+<div id="color-overlay"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+
+// ── State ──
+let filterOn = false;
+let flickerInterval = null;
+let phase = false;
+let currentColor = 'none';
+const spacingLabels = ['Normal','Let','Moderat','Stor','Meget stor'];
+
+const td = () => document.getElementById('text-display');
+const overlay = document.getElementById('color-overlay');
+const mainArea = document.getElementById('main-area');
+
+// ── Flicker engine ──
+function stopFlicker() {
+  if (flickerInterval !== null) {
+    clearInterval(flickerInterval);
+    flickerInterval = null;
+  }
+  phase = false;
+  if (td()) td().style.opacity = '1';
+}
+
+function startFlicker() {
+  stopFlicker();
+  if (!filterOn) return;
+  const hz = parseInt(document.getElementById('freq').value);
+  const pct = parseInt(document.getElementById('intens').value) / 100;
+  const ms = Math.round(1000 / (hz * 2));
+  flickerInterval = setInterval(() => {
+    phase = !phase;
+    if (filterOn && td()) td().style.opacity = phase ? String(1 - pct * 0.55) : '1';
+  }, ms);
+}
+
+function setFilterEnabled(enabled) {
+  filterOn = enabled;
+  const btn = document.getElementById('filter-toggle');
+  btn.classList.toggle('on', filterOn);
+  btn.setAttribute('aria-pressed', String(filterOn));
+  if (filterOn) startFlicker();
+  else stopFlicker();
+}
+
+// ── Toggle ──
+document.getElementById('filter-toggle').addEventListener('click', () => {
+  setFilterEnabled(!filterOn);
+});
+
+// ── Color overlay ──
+function setColor(color) {
+  currentColor = color;
+  if (color === 'none') {
+    overlay.style.opacity = '0';
+    overlay.style.background = 'transparent';
+  } else {
+    overlay.style.background = color;
+    overlay.style.opacity = '0.28';
+  }
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.color === color);
+  });
+}
+
+document.querySelectorAll('.color-swatch').forEach(s => {
+  s.addEventListener('click', () => setColor(s.dataset.color));
+});
+
+// ── Sliders ──
+document.getElementById('freq').addEventListener('input', e => {
+  document.getElementById('freq-out').textContent = e.target.value + ' Hz';
+  startFlicker();
+});
+document.getElementById('intens').addEventListener('input', e => {
+  document.getElementById('intens-out').textContent = e.target.value + '%';
+  startFlicker();
+});
+document.getElementById('fontsize').addEventListener('input', e => {
+  document.getElementById('size-out').textContent = e.target.value + 'px';
+  if (td()) td().style.fontSize = e.target.value + 'px';
+});
+document.getElementById('spacing').addEventListener('input', e => {
+  const idx = parseInt(e.target.value) / 2;
+  document.getElementById('spacing-out').textContent = spacingLabels[idx];
+  if (td()) td().style.letterSpacing = e.target.value + 'px';
+});
+document.getElementById('lineheight').addEventListener('input', e => {
+  const val = (parseInt(e.target.value) / 10).toFixed(1);
+  document.getElementById('lineheight-out').textContent = val;
+  if (td()) td().style.lineHeight = val;
+});
+
+// ── Font ──
+document.querySelectorAll('.font-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (td()) td().style.fontFamily = btn.dataset.font;
+  });
+});
+
+// ── Reset ──
+document.getElementById('reset-btn').addEventListener('click', () => {
+  document.getElementById('freq').value = 10; document.getElementById('freq-out').textContent = '10 Hz';
+  document.getElementById('intens').value = 40; document.getElementById('intens-out').textContent = '40%';
+  document.getElementById('fontsize').value = 18; document.getElementById('size-out').textContent = '18px';
+  document.getElementById('spacing').value = 0; document.getElementById('spacing-out').textContent = 'Normal';
+  document.getElementById('lineheight').value = 20; document.getElementById('lineheight-out').textContent = '2.0';
+  setColor('none');
+  if (filterOn) setFilterEnabled(false);
+  if (td()) {
+    Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0', fontFamily:"'OpenDyslexic', sans-serif", opacity:'1' });
+  }
+  document.querySelectorAll('.font-btn').forEach(b => b.classList.toggle('active', b.dataset.font === "'OpenDyslexic', sans-serif"));
+  startFlicker();
+});
+
+// ── Paste text ──
+document.getElementById('paste-btn').addEventListener('click', () => {
+  const text = document.getElementById('paste-input').value.trim();
+  if (!text) return;
+  const wordCount = text.split(/\s+/).length;
+  showContent('Indsat tekst', `ca. ${wordCount.toLocaleString('da')} ord`, text);
+});
+
+// Støt også Enter+Ctrl/Cmd i textarea
+document.getElementById('paste-input').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    document.getElementById('paste-btn').click();
+  }
+});
+
+// ── Upload & drag-drop ──
+const fileInput = document.getElementById('file-input');
+const uploadZone = document.getElementById('upload-zone');
+
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+mainArea.addEventListener('dragover', e => e.preventDefault());
+mainArea.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+function showLoading() {
+  document.getElementById('drop-prompt').style.display = 'none';
+  document.getElementById('reader-content').style.display = 'none';
+  let el = document.getElementById('loading-el');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loading-el';
+    el.className = 'loading';
+    el.innerHTML = '<div class="spinner"></div> Indlæser dokument...';
+    mainArea.appendChild(el);
+  }
+  el.style.display = 'flex';
+}
+
+function showContent(title, meta, text) {
+  const el = document.getElementById('loading-el');
+  if (el) el.style.display = 'none';
+  document.getElementById('doc-title').textContent = title;
+  document.getElementById('doc-meta').textContent = meta;
+  const display = document.getElementById('text-display');
+  display.textContent = text;
+  display.style.fontSize = document.getElementById('fontsize').value + 'px';
+  display.style.letterSpacing = document.getElementById('spacing').value + 'px';
+  display.style.lineHeight = (parseInt(document.getElementById('lineheight').value) / 10).toFixed(1);
+  document.getElementById('reader-content').style.display = 'block';
+  startFlicker();
+}
+
+async function handleFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  showLoading();
+  try {
+    if (ext === 'pdf') await loadPDF(file);
+    else if (ext === 'docx') await loadDOCX(file);
+    else { alert('Understøtter kun PDF og DOCX filer.'); resetView(); }
+  } catch(e) {
+    alert('Kunne ikke læse filen: ' + e.message);
+    resetView();
+  }
+}
+
+function resetView() {
+  const el = document.getElementById('loading-el');
+  if (el) el.style.display = 'none';
+  document.getElementById('drop-prompt').style.display = 'flex';
+  document.getElementById('reader-content').style.display = 'none';
+}
+
+async function loadPDF(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let allText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(' ');
+    allText += pageText + '\n\n';
+  }
+  const wordCount = allText.trim().split(/\s+/).length;
+  showContent(
+    file.name.replace('.pdf',''),
+    `PDF · ${pdf.numPages} side${pdf.numPages !== 1 ? 'r' : ''} · ca. ${wordCount.toLocaleString('da')} ord`,
+    allText.trim()
+  );
+}
+
+async function loadDOCX(file) {
+  const buf = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer: buf });
+  const text = result.value;
+  const wordCount = text.trim().split(/\s+/).length;
+  showContent(
+    file.name.replace('.docx',''),
+    `Word-dokument · ca. ${wordCount.toLocaleString('da')} ord`,
+    text.trim()
+  );
+}
+
+// ── Init ──
+startFlicker();
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>
