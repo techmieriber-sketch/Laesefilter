@@ -135,6 +135,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
   }
   .ctrl-val {
     font-size: 12px;
@@ -150,7 +151,10 @@
     accent-color: var(--accent);
     cursor: pointer;
     display: block;
+    min-width: 0;
     box-sizing: border-box;
+    padding: 0;
+    margin: 0;
   }
 
   .color-row { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -416,18 +420,17 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
     ">
-      <div class="panel-title" style="margin-bottom:0">Filterindstillinger</div>
-      <div class="ctrl-row">
-        <div class="ctrl-label">Frekvens <span class="ctrl-val" id="freq-out">10 Hz</span></div>
-        <input type="range" id="freq" min="2" max="30" value="10" step="1">
-      </div>
-      <div class="ctrl-row">
-        <div class="ctrl-label">Intensitet <span class="ctrl-val" id="intens-out">40%</span></div>
-        <input type="range" id="intens" min="5" max="80" value="40" step="5">
+      <div class="panel-title" style="margin-bottom:10px">Filterindstillinger</div>
+      <div class="control-group">
+        <div class="ctrl-row">
+          <div class="ctrl-label">Frekvens <span class="ctrl-val" id="freq-out">10 Hz</span></div>
+          <input type="range" id="freq" min="2" max="30" value="10" step="1">
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label">Intensitet <span class="ctrl-val" id="intens-out">40%</span></div>
+          <input type="range" id="intens" min="5" max="80" value="40" step="5">
+        </div>
       </div>
     </div>
 
@@ -725,23 +728,20 @@ async function loadPDF(file) {
   let allText = '';
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
+    const content = await page.getTextContent({ includeMarkedContent: false });
     let pageText = '';
     for (const item of content.items) {
-      if (item.str === undefined) continue;
-      // hasEOL = linjeskift efter dette fragment
+      if (!item || item.str === undefined) continue;
       if (item.hasEOL) {
         pageText += item.str + '\n';
       } else {
-        // Kun tilføj mellemrum hvis fragmentet ikke allerede slutter/starter med ét
+        // Tilføj kun mellemrum hvis der er et reelt ordskift (width > 0 indikerer mellemrum i PDF)
         const needsSpace = pageText.length > 0
           && !pageText.endsWith(' ')
           && !pageText.endsWith('\n')
-          && item.str.length > 0
-          && !item.str.startsWith(' ')
           && item.str !== ''
-          // PDF.js sætter width=0 på fragmenter der er direkte fortsættelse af forrige
-          && (item.width > 0 || item.str === ' ');
+          && !item.str.startsWith(' ')
+          && item.width > 0;
         pageText += (needsSpace ? ' ' : '') + item.str;
       }
     }
@@ -749,7 +749,7 @@ async function loadPDF(file) {
   }
   const wordCount = allText.trim().split(/\s+/).length;
   showContent(
-    file.name.replace('.pdf',''),
+    file.name.replace(/\.pdf$/i, ''),
     `PDF · ${pdf.numPages} side${pdf.numPages !== 1 ? 'r' : ''} · ca. ${wordCount.toLocaleString('da')} ord`,
     allText.trim()
   );
