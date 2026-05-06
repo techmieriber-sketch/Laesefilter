@@ -4,8 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Læsehjælp – Visuel ordblindhedsfilter</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=Lexend:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+<style>
+  @font-face { font-family: 'Dyslexie'; src: local('Dyslexie'); }
+  @font-face { font-family: 'Calibri'; src: local('Calibri'); }
+</style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -28,7 +32,6 @@
     --radius: 12px;
     --radius-lg: 20px;
     --font-heading: 'DM Sans', sans-serif;
-    --font-body: 'OpenDyslexic', sans-serif;
   }
 
   body {
@@ -308,8 +311,7 @@
   }
 
   #text-display {
-    font-family: var(--font-body);
-    font-size: 18px;
+        font-size: 18px;
     line-height: 2;
     color: var(--text);
     white-space: pre-wrap;
@@ -498,7 +500,7 @@
       <div class="panel-title" style="margin-bottom:8px">Skrifttype</div>
       <div class="font-row">
         <button class="font-btn" type="button" data-font="'OpenDyslexic', sans-serif">OpenDyslexic</button>
-        <button class="font-btn" type="button" data-font="'Lexend', sans-serif">Lexend</button>
+        <button class="font-btn" type="button" data-font="'Dyslexie', sans-serif">Dyslexie</button>
         <button class="font-btn" type="button" data-font="'Calibri', sans-serif">Calibri</button>
       </div>
     </div>
@@ -724,6 +726,7 @@ function showContent(title, meta, text) {
   display.style.fontSize = document.getElementById('fontsize').value + 'px';
   display.style.letterSpacing = document.getElementById('spacing').value + 'px';
   display.style.lineHeight = (parseInt(document.getElementById('lineheight').value) / 10).toFixed(1);
+  display.style.fontFamily = currentFont === 'none' ? '' : currentFont;
   document.getElementById('reader-content').style.display = 'block';
   startFlicker();
 }
