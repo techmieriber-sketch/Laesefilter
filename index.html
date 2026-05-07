@@ -216,7 +216,37 @@
   }
 
   #color-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0; transition: opacity 0.3s; }
-  #flicker-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 49; background: black; opacity: 0; }
+  #flicker-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 49;
+    opacity: 0;
+    transition: opacity 0.04s linear, background-color 0.04s linear;
+  }
+  #line-focus {
+    position: fixed;
+    left: 0;
+    right: 0;
+    height: 92px;
+    pointer-events: none;
+    z-index: 48;
+    display: none;
+    background: linear-gradient(to bottom, rgba(245,240,232,0.72), rgba(245,240,232,0.04) 38%, rgba(245,240,232,0.04) 62%, rgba(245,240,232,0.72));
+    border-top: 1px solid rgba(45,90,61,0.14);
+    border-bottom: 1px solid rgba(45,90,61,0.14);
+  }
+  .mini-help { font-size: 11px; color: var(--text3); line-height: 1.35; margin-top: 6px; }
+  .select-control {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--card); color: var(--text); font-family: var(--font-ui); font-size: 12px;
+  }
+  .test-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+
+  .reader-mask-on #text-display {
+    text-shadow: 0 0 0.01px var(--text);
+    background: linear-gradient(to right, rgba(255,255,255,0.18), rgba(255,255,255,0.02));
+  }
 
   .loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 3rem; color: var(--text3); font-size: 14px; }
   .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -295,7 +325,7 @@
 <header>
   <div class="logo">Læse<span>filter</span></div>
   <div style="font-size:10px; color:rgba(255,255,255,0.55); text-align:center; line-height:1.4; max-width:420px;">
-    Advarsel: Det stroboskopiske filter producerer blinkende lys og må ikke bruges af personer med fotosensitiv epilepsi eller anfaldssygdomme.
+    Advarsel: Det aktive filter kan give blinkende lys. Brug ikke blinkfilter ved fotosensitiv epilepsi, anfaldssygdomme, migrænetendens eller ubehag. Brug i stedet linjefokus uden blink.
   </div>
   <div class="header-tag">Hjælp til visuel ordblindhed</div>
 </header>
@@ -331,17 +361,31 @@
 
     <!-- Filterindstillinger -->
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
-      <div class="panel-title" style="margin-bottom:10px">Filterindstillinger</div>
+      <div class="panel-title" style="margin-bottom:10px">Aktivt visuelt filter</div>
       <div class="control-group">
         <div class="ctrl-row">
-          <div class="ctrl-label">Frekvens <span class="ctrl-val" id="freq-out">10 Hz</span></div>
-          <input type="range" id="freq" min="2" max="30" value="10" step="1">
+          <div class="ctrl-label">Filtertype</div>
+          <select id="filter-mode" class="select-control">
+            <option value="soft">Blød lyspuls</option>
+            <option value="contrast">Kontrastpuls</option>
+            <option value="warm">Varm dæmpning</option>
+            <option value="focus">Linjefokus uden blink</option>
+          </select>
         </div>
         <div class="ctrl-row">
-          <div class="ctrl-label">Intensitet <span class="ctrl-val" id="intens-out">40%</span></div>
-          <input type="range" id="intens" min="5" max="80" value="40" step="5">
+          <div class="ctrl-label">Frekvens <span class="ctrl-val" id="freq-out">16 Hz</span></div>
+          <input type="range" id="freq" min="12" max="24" value="16" step="1">
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label">Intensitet <span class="ctrl-val" id="intens-out">22%</span></div>
+          <input type="range" id="intens" min="5" max="40" value="22" step="1">
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-label">Kontrast <span class="ctrl-val" id="contrast-out">105%</span></div>
+          <input type="range" id="contrast" min="90" max="125" value="105" step="5">
         </div>
       </div>
+      <div class="mini-help">Filteret er gjort mere kontrolleret: ingen lave frekvenser, lavere intensitet og mulighed for linjefokus uden blink.</div>
     </div>
 
     <div class="divider"></div>
@@ -415,6 +459,7 @@
 <button id="exit-read-btn">✕ Forlad læsetilstand</button>
 
 <div id="color-overlay"></div>
+<div id="line-focus"></div>
 <div id="flicker-overlay"></div>
 
 <script>
@@ -434,22 +479,71 @@ const overlay = document.getElementById('color-overlay');
 const flickerOverlay = document.getElementById('flicker-overlay');
 const mainArea = document.getElementById('main-area');
 
-// ── Flicker ──
+// ── Aktivt visuelt filter ──
 function stopFlicker() {
   if (flickerInterval !== null) { clearInterval(flickerInterval); flickerInterval = null; }
   phase = false;
   flickerOverlay.style.opacity = '0';
+  flickerOverlay.style.background = 'transparent';
+  document.body.classList.remove('reader-mask-on');
 }
+
+function applyVisualBase() {
+  const contrast = document.getElementById('contrast').value;
+  const display = td();
+  if (display) display.style.filter = `contrast(${contrast}%)`;
+  document.getElementById('contrast-out').textContent = contrast + '%';
+}
+
+function updateLineFocus(e) {
+  const lineFocus = document.getElementById('line-focus');
+  if (!filterOn || document.getElementById('filter-mode').value !== 'focus') return;
+  lineFocus.style.display = 'block';
+  // Klik eller tryk placerer linjefokus præcist
+  lineFocus.style.top = Math.max(56, e.clientY - 46) + 'px';
+}
+
+// Linjefokus følger klik/tryk – ikke musen konstant
+document.addEventListener('click', updateLineFocus);
+document.addEventListener('touchstart', e => updateLineFocus(e.touches[0]));
+// Piletaster flytter linjefokus op/ned
+document.addEventListener('keydown', e => {
+  const lineFocus = document.getElementById('line-focus');
+  if (!filterOn || document.getElementById('filter-mode').value !== 'focus') return;
+  const current = parseInt(lineFocus.style.top) || 100;
+  if (e.key === 'ArrowDown') { e.preventDefault(); lineFocus.style.top = (current + 30) + 'px'; }
+  if (e.key === 'ArrowUp') { e.preventDefault(); lineFocus.style.top = Math.max(56, current - 30) + 'px'; }
+});
 
 function startFlicker() {
   stopFlicker();
+  applyVisualBase();
   if (!filterOn) return;
+
+  const mode = document.getElementById('filter-mode').value;
+  const lineFocus = document.getElementById('line-focus');
+  lineFocus.style.display = mode === 'focus' ? 'block' : 'none';
+
+  if (mode === 'focus') {
+    document.body.classList.add('reader-mask-on');
+    return;
+  }
+
   const hz = parseInt(document.getElementById('freq').value);
   const pct = parseInt(document.getElementById('intens').value) / 100;
   const ms = Math.round(1000 / (hz * 2));
+
+  const colors = {
+    soft: ['rgba(255,255,255,0.16)', 'rgba(20,30,20,0.05)'],
+    contrast: ['rgba(255,255,255,0.10)', 'rgba(0,0,0,0.08)'],
+    warm: ['rgba(255,238,204,0.18)', 'rgba(70,45,20,0.05)']
+  };
+  const pair = colors[mode] || colors.soft;
+
   flickerInterval = setInterval(() => {
     phase = !phase;
-    flickerOverlay.style.opacity = phase ? String(pct * 0.45) : '0';
+    flickerOverlay.style.background = phase ? pair[0] : pair[1];
+    flickerOverlay.style.opacity = String(Math.min(0.22, pct));
   }, ms);
 }
 
@@ -458,10 +552,12 @@ function setFilterEnabled(enabled) {
   const btn = document.getElementById('filter-toggle');
   btn.classList.toggle('on', filterOn);
   btn.setAttribute('aria-pressed', String(filterOn));
+  document.getElementById('line-focus').style.display = filterOn && document.getElementById('filter-mode').value === 'focus' ? 'block' : 'none';
   if (filterOn) startFlicker(); else stopFlicker();
 }
 
 document.getElementById('filter-toggle').addEventListener('click', () => setFilterEnabled(!filterOn));
+document.getElementById('filter-mode').addEventListener('change', startFlicker);
 
 // ── Farve-overlay ──
 function setColor(color) {
@@ -488,6 +584,9 @@ document.getElementById('freq').addEventListener('input', e => {
 document.getElementById('intens').addEventListener('input', e => {
   document.getElementById('intens-out').textContent = e.target.value + '%';
   startFlicker();
+});
+document.getElementById('contrast').addEventListener('input', () => {
+  applyVisualBase();
 });
 document.getElementById('fontsize').addEventListener('input', e => {
   document.getElementById('size-out').textContent = e.target.value + 'px';
@@ -532,8 +631,10 @@ document.querySelectorAll('.font-btn').forEach(btn => {
 
 // ── Reset ──
 document.getElementById('reset-btn').addEventListener('click', () => {
-  document.getElementById('freq').value = 10; document.getElementById('freq-out').textContent = '10 Hz';
-  document.getElementById('intens').value = 40; document.getElementById('intens-out').textContent = '40%';
+  document.getElementById('filter-mode').value = 'soft';
+  document.getElementById('freq').value = 16; document.getElementById('freq-out').textContent = '16 Hz';
+  document.getElementById('intens').value = 22; document.getElementById('intens-out').textContent = '22%';
+  document.getElementById('contrast').value = 105; document.getElementById('contrast-out').textContent = '105%';
   document.getElementById('fontsize').value = 18; document.getElementById('size-out').textContent = '18px';
   document.getElementById('spacing').value = 0; document.getElementById('spacing-out').textContent = 'Normal';
   document.getElementById('lineheight').value = 20; document.getElementById('lineheight-out').textContent = '2.0';
@@ -542,7 +643,8 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   currentFont = null;
   document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('__font-override').textContent = '';
-  if (td()) Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0' });
+  if (td()) Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0', filter:'contrast(105%)' });
+  document.getElementById('line-focus').style.display = 'none';
 });
 
 // ── Paste tekst ──
@@ -597,6 +699,7 @@ function showContent(title, meta, text) {
   display.style.fontSize = document.getElementById('fontsize').value + 'px';
   display.style.letterSpacing = document.getElementById('spacing').value + 'px';
   display.style.lineHeight = (parseInt(document.getElementById('lineheight').value) / 10).toFixed(1);
+  applyVisualBase();
   applyFont(); // anvend aktiv font på nyt indhold
   document.getElementById('reader-content').style.display = 'block';
   document.getElementById('read-btn').style.display = 'block';
@@ -675,6 +778,7 @@ async function loadDOCX(file) {
 }
 
 startFlicker();
+
 
 // ── Læsetilstand ──
 document.getElementById('read-btn').addEventListener('click', () => {
