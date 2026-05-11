@@ -224,17 +224,35 @@
     opacity: 0;
     transition: opacity 0.04s linear, background-color 0.04s linear;
   }
+  /* Linjefokus dækker kun læsefeltet (main) — venstremenu påvirkes ikke; left/width sættes i JS */
+  #line-focus-blur-top,
+  #line-focus-blur-bottom {
+    position: fixed;
+    left: 0;
+    width: 0;
+    pointer-events: none;
+    z-index: 99;
+    display: none;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    background: rgba(245, 240, 232, 0.42);
+    transition: opacity 0.15s ease;
+  }
   #line-focus {
     position: fixed;
     left: 0;
-    right: 0;
+    width: 0;
     height: 92px;
     pointer-events: none;
-    z-index: 48;
+    z-index: 101;
     display: none;
-    background: linear-gradient(to bottom, rgba(245,240,232,0.72), rgba(245,240,232,0.04) 38%, rgba(245,240,232,0.04) 62%, rgba(245,240,232,0.72));
-    border-top: 1px solid rgba(45,90,61,0.14);
-    border-bottom: 1px solid rgba(45,90,61,0.14);
+    box-sizing: border-box;
+    background: transparent;
+    border-top: 1px solid rgba(45,90,61,0.22);
+    border-bottom: 1px solid rgba(45,90,61,0.22);
+    box-shadow:
+      inset 0 12px 24px -18px rgba(255,255,255,0.85),
+      inset 0 -12px 24px -18px rgba(255,255,255,0.85);
   }
   .mini-help { font-size: 11px; color: var(--text3); line-height: 1.35; margin-top: 6px; }
   .select-control {
@@ -359,6 +377,11 @@
       <button type="button" class="toggle-switch" id="filter-toggle" aria-label="Slå filter til/fra" aria-pressed="false"></button>
     </div>
 
+    <div class="toggle-row">
+      <div><div class="toggle-label">Linjefokus</div></div>
+      <button type="button" class="toggle-switch" id="line-focus-toggle" aria-label="Slå linjefokus til/fra" aria-pressed="false"></button>
+    </div>
+
     <!-- Filterindstillinger -->
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
       <div class="panel-title" style="margin-bottom:10px">Aktivt visuelt filter</div>
@@ -369,7 +392,6 @@
             <option value="soft">Blød lyspuls</option>
             <option value="contrast">Kontrastpuls</option>
             <option value="warm">Varm dæmpning</option>
-            <option value="focus">Linjefokus uden blink</option>
           </select>
         </div>
         <div class="ctrl-row">
@@ -385,7 +407,7 @@
           <input type="range" id="contrast" min="90" max="125" value="105" step="5">
         </div>
       </div>
-      <div class="mini-help">Filteret er gjort mere kontrolleret: ingen lave frekvenser, lavere intensitet og mulighed for linjefokus uden blink.</div>
+      <div class="mini-help">Filteret er gjort mere kontrolleret: ingen lave frekvenser og lavere intensitet. Brug knappen Linjefokus til at slå læseruden til eller fra uafhængigt af blinkfilteret.</div>
     </div>
 
     <div class="divider"></div>
@@ -459,6 +481,8 @@
 <button id="exit-read-btn">✕ Forlad læsetilstand</button>
 
 <div id="color-overlay"></div>
+<div id="line-focus-blur-top" aria-hidden="true"></div>
+<div id="line-focus-blur-bottom" aria-hidden="true"></div>
 <div id="line-focus"></div>
 <div id="flicker-overlay"></div>
 
@@ -468,6 +492,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 document.addEventListener('DOMContentLoaded', () => {
 
 let filterOn = false;
+let lineFocusOn = false;
 let flickerInterval = null;
 let phase = false;
 let currentColor = 'none';
@@ -479,13 +504,109 @@ const overlay = document.getElementById('color-overlay');
 const flickerOverlay = document.getElementById('flicker-overlay');
 const mainArea = document.getElementById('main-area');
 
+const LINE_FOCUS_BAND_H = 92;
+
+function getLineFocusColumnRect() {
+  const reader = document.getElementById('reader-content');
+  const cs = reader && window.getComputedStyle(reader);
+  if (reader && cs && cs.display !== 'none')
+    return reader.getBoundingClientRect();
+  return mainArea.getBoundingClientRect();
+}
+
+function syncLineFocusMainColumn() {
+  const box = getLineFocusColumnRect();
+  const left = Math.max(0, Math.round(box.left));
+  const width = Math.max(0, Math.round(box.width));
+  for (const id of ['line-focus-blur-top', 'line-focus-blur-bottom', 'line-focus']) {
+    const el = document.getElementById(id);
+    el.style.left = left + 'px';
+    el.style.width = width + 'px';
+    el.style.right = 'auto';
+  }
+}
+
+/** Lodret bevægelse indeholdt til tekstkolonnens synlige område */
+function getLineFocusVerticalClamp() {
+  const box = getLineFocusColumnRect();
+  const minTop = Math.max(0, Math.floor(box.top));
+  let maxTop = Math.floor(box.bottom) - LINE_FOCUS_BAND_H;
+  maxTop = Math.min(window.innerHeight - LINE_FOCUS_BAND_H - 2, maxTop);
+  if (maxTop < minTop) maxTop = minTop;
+  return { minTop, maxTop };
+}
+
+function clampLineFocusTop(px) {
+  const { minTop, maxTop } = getLineFocusVerticalClamp();
+  return Math.min(maxTop, Math.max(minTop, px));
+}
+
+/** Start ved dokumentoverskrift når tekst er synlig */
+function preferredLineFocusTop() {
+  const reader = document.getElementById('reader-content');
+  const title = document.getElementById('doc-title');
+  const cs = reader && window.getComputedStyle(reader);
+  if (reader && cs && cs.display !== 'none' && title && String(title.textContent || '').trim()) {
+    const tr = title.getBoundingClientRect();
+    return clampLineFocusTop(tr.top);
+  }
+  const box = getLineFocusColumnRect();
+  return clampLineFocusTop(box.top + 12);
+}
+
+function layoutLineFocusBlurPanels() {
+  syncLineFocusMainColumn();
+  const lineFocus = document.getElementById('line-focus');
+  const blurTop = document.getElementById('line-focus-blur-top');
+  const blurBottom = document.getElementById('line-focus-blur-bottom');
+  let topPx = parseInt(lineFocus.style.top, 10);
+  if (Number.isNaN(topPx)) {
+    topPx = preferredLineFocusTop();
+    lineFocus.style.top = topPx + 'px';
+  }
+  topPx = clampLineFocusTop(topPx);
+  lineFocus.style.top = topPx + 'px';
+  blurTop.style.display = 'block';
+  blurBottom.style.display = 'block';
+  blurTop.style.top = '0';
+  blurTop.style.height = topPx + 'px';
+  blurBottom.style.top = (topPx + LINE_FOCUS_BAND_H) + 'px';
+  blurBottom.style.bottom = '0';
+}
+
+function hideLineFocusBlurPanels() {
+  document.getElementById('line-focus-blur-top').style.display = 'none';
+  document.getElementById('line-focus-blur-bottom').style.display = 'none';
+}
+
 // ── Aktivt visuelt filter ──
-function stopFlicker() {
+function stopStroboscopicPulse() {
   if (flickerInterval !== null) { clearInterval(flickerInterval); flickerInterval = null; }
   phase = false;
   flickerOverlay.style.opacity = '0';
   flickerOverlay.style.background = 'transparent';
-  document.body.classList.remove('reader-mask-on');
+}
+
+function syncLineFocusVisual() {
+  const lineFocus = document.getElementById('line-focus');
+  if (lineFocusOn) {
+    document.body.classList.add('reader-mask-on');
+    lineFocus.style.display = 'block';
+    layoutLineFocusBlurPanels();
+  } else {
+    document.body.classList.remove('reader-mask-on');
+    lineFocus.style.display = 'none';
+    hideLineFocusBlurPanels();
+  }
+}
+
+function setLineFocusEnabled(enabled) {
+  lineFocusOn = enabled;
+  const btn = document.getElementById('line-focus-toggle');
+  btn.classList.toggle('on', lineFocusOn);
+  btn.setAttribute('aria-pressed', String(lineFocusOn));
+  if (lineFocusOn) document.getElementById('line-focus').style.top = '';
+  syncLineFocusVisual();
 }
 
 function applyVisualBase() {
@@ -496,11 +617,17 @@ function applyVisualBase() {
 }
 
 function updateLineFocus(e) {
+  if (!lineFocusOn || !e) return;
+  const t = e.target;
+  if (t && t.closest && (t.closest('aside') || t.closest('header'))) return;
+  const col = getLineFocusColumnRect();
+  const cx = e.clientX;
+  const cy = e.clientY;
+  if (cx < col.left || cx > col.right || cy < col.top || cy > col.bottom) return;
   const lineFocus = document.getElementById('line-focus');
-  if (!filterOn || document.getElementById('filter-mode').value !== 'focus') return;
   lineFocus.style.display = 'block';
-  // Klik eller tryk placerer linjefokus præcist
-  lineFocus.style.top = Math.max(56, e.clientY - 46) + 'px';
+  lineFocus.style.top = clampLineFocusTop(cy - 46) + 'px';
+  layoutLineFocusBlurPanels();
 }
 
 // Linjefokus følger klik/tryk – ikke musen konstant
@@ -509,25 +636,33 @@ document.addEventListener('touchstart', e => updateLineFocus(e.touches[0]));
 // Piletaster flytter linjefokus op/ned
 document.addEventListener('keydown', e => {
   const lineFocus = document.getElementById('line-focus');
-  if (!filterOn || document.getElementById('filter-mode').value !== 'focus') return;
-  const current = parseInt(lineFocus.style.top) || 100;
-  if (e.key === 'ArrowDown') { e.preventDefault(); lineFocus.style.top = (current + 30) + 'px'; }
-  if (e.key === 'ArrowUp') { e.preventDefault(); lineFocus.style.top = Math.max(56, current - 30) + 'px'; }
+  if (!lineFocusOn) return;
+  const current = parseInt(lineFocus.style.top, 10);
+  const base = Number.isNaN(current) ? preferredLineFocusTop() : current;
+  if (e.key === 'ArrowDown') { e.preventDefault(); lineFocus.style.top = clampLineFocusTop(base + 30) + 'px'; layoutLineFocusBlurPanels(); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); lineFocus.style.top = clampLineFocusTop(base - 30) + 'px'; layoutLineFocusBlurPanels(); }
+});
+
+window.addEventListener('resize', () => {
+  if (lineFocusOn) layoutLineFocusBlurPanels();
+});
+
+mainArea.addEventListener('scroll', () => {
+  if (!lineFocusOn) return;
+  const lf = document.getElementById('line-focus');
+  const raw = parseInt(lf.style.top, 10);
+  if (!Number.isNaN(raw)) lf.style.top = clampLineFocusTop(raw) + 'px';
+  layoutLineFocusBlurPanels();
 });
 
 function startFlicker() {
-  stopFlicker();
+  stopStroboscopicPulse();
   applyVisualBase();
+  syncLineFocusVisual();
+
   if (!filterOn) return;
 
   const mode = document.getElementById('filter-mode').value;
-  const lineFocus = document.getElementById('line-focus');
-  lineFocus.style.display = mode === 'focus' ? 'block' : 'none';
-
-  if (mode === 'focus') {
-    document.body.classList.add('reader-mask-on');
-    return;
-  }
 
   const hz = parseInt(document.getElementById('freq').value);
   const pct = parseInt(document.getElementById('intens').value) / 100;
@@ -552,11 +687,16 @@ function setFilterEnabled(enabled) {
   const btn = document.getElementById('filter-toggle');
   btn.classList.toggle('on', filterOn);
   btn.setAttribute('aria-pressed', String(filterOn));
-  document.getElementById('line-focus').style.display = filterOn && document.getElementById('filter-mode').value === 'focus' ? 'block' : 'none';
-  if (filterOn) startFlicker(); else stopFlicker();
+  if (filterOn) startFlicker();
+  else {
+    stopStroboscopicPulse();
+    applyVisualBase();
+    syncLineFocusVisual();
+  }
 }
 
 document.getElementById('filter-toggle').addEventListener('click', () => setFilterEnabled(!filterOn));
+document.getElementById('line-focus-toggle').addEventListener('click', () => setLineFocusEnabled(!lineFocusOn));
 document.getElementById('filter-mode').addEventListener('change', startFlicker);
 
 // ── Farve-overlay ──
@@ -640,11 +780,11 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('lineheight').value = 20; document.getElementById('lineheight-out').textContent = '2.0';
   setColor('none');
   if (filterOn) setFilterEnabled(false);
+  setLineFocusEnabled(false);
   currentFont = null;
   document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('__font-override').textContent = '';
   if (td()) Object.assign(td().style, { fontSize:'18px', letterSpacing:'0px', lineHeight:'2.0', filter:'contrast(105%)' });
-  document.getElementById('line-focus').style.display = 'none';
 });
 
 // ── Paste tekst ──
@@ -704,6 +844,10 @@ function showContent(title, meta, text) {
   document.getElementById('reader-content').style.display = 'block';
   document.getElementById('read-btn').style.display = 'block';
   startFlicker();
+  if (lineFocusOn) {
+    document.getElementById('line-focus').style.top = '';
+    layoutLineFocusBlurPanels();
+  }
 }
 
 async function handleFile(file) {
@@ -783,9 +927,11 @@ startFlicker();
 // ── Læsetilstand ──
 document.getElementById('read-btn').addEventListener('click', () => {
   document.body.classList.add('read-mode');
+  requestAnimationFrame(() => { if (lineFocusOn) layoutLineFocusBlurPanels(); });
 });
 document.getElementById('exit-read-btn').addEventListener('click', () => {
   document.body.classList.remove('read-mode');
+  requestAnimationFrame(() => { if (lineFocusOn) layoutLineFocusBlurPanels(); });
 });
 
 }); // DOMContentLoaded
